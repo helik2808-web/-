@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>כתוביות בעברית בזמן אמת</title>
+<style>
+  :root{--bg:#0f1115;--card:#1a1d24;--line:#2a2f3a;--txt:#e8eaf0;--mut:#9aa3b2;--acc:#4f8cff;--ok:#2ecc71;--bad:#ff5c5c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,"Segoe UI",Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:4px 0 12px}
+  .stage{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9}
+  .stage video{width:100%;height:100%;display:block;background:#000}
+  .stage:fullscreen{border-radius:0;aspect-ratio:auto}
+  #ytbox{position:absolute;inset:0;display:none;background:#000}
+  #ytbox iframe{width:100%;height:100%;border:0;display:block}
+  input[type=text]{flex:1;min-width:200px;background:#242936;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;direction:ltr}
+  #sub{position:absolute;left:5%;right:5%;bottom:14%;text-align:center;pointer-events:none;
+    font-weight:700;line-height:1.35;color:#fff;font-size:28px;direction:rtl;
+    text-shadow:0 0 4px #000,0 0 8px #000,2px 2px 3px #000}
+  #sub.top{bottom:auto;top:6%}
+  #sub span{background:rgba(0,0,0,var(--bgop,.55));padding:2px 10px;border-radius:6px;
+    -webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);text-align:center;padding:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  button,select,label.btn{background:#242936;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer}
+  button:hover,label.btn:hover{border-color:var(--acc)}
+  button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+  button.stop{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:700}
+  button.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+  input[type=file]{display:none}
+  input[type=range]{accent-color:var(--acc)}
+  .lbl{font-size:13px;color:var(--mut)}
+  #status{font-size:13px;color:var(--mut);min-height:18px}
+  #status.ok{color:var(--ok)} #status.err{color:var(--bad)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--mut);margin-inline-end:6px}
+  .dot.live{background:var(--bad);animation:p 1s infinite}
+  @keyframes p{50%{opacity:.3}}
+  details{font-size:13px;color:var(--mut)} details p{margin:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎬 כתוביות בעברית בזמן אמת — טורקית ואנגלית</h1>
+
+  <div class="stage" id="stage">
+    <video id="video" controls playsinline></video>
+    <div id="ytbox"><div id="ytplayer"></div></div>
+    <div class="empty" id="empty">בחרו קובץ וידאו מהמחשב כדי להתחיל</div>
+    <div id="sub"></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label class="btn">📁 בחירת סרט<input type="file" id="file" accept="video/*,audio/*"></label>
+      <button id="go" class="primary">▶ הפעל כתוביות</button>
+      <button id="fs">⛶ מסך מלא</button>
+      <span id="status"><span class="dot" id="dot"></span><span id="stxt">מוכן</span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span class="lbl">או קישור מיוטיוב (סרטון / רשימת השמעה / סדרה):</span>
+      <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=...">
+      <button id="ytgo">▶ טען מיוטיוב</button>
+    </div>
+    <div class="lbl" style="margin-top:8px">ביוטיוב הזיהוי עובד דרך המיקרופון: נגנו ברמקולים, בלי אוזניות.</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span class="lbl">שפת הדיבור בסרט:</span>
+      <button id="tr" class="on">🇹🇷 טורקית (T)</button>
+      <button id="en">🇬🇧 אנגלית (E)</button>
+      <span class="lbl" style="margin-inline-start:12px">מקור השמע:</span>
+      <select id="src">
+        <option value="video">שמע הסרטון (ישיר)</option>
+        <option value="mic">מיקרופון (האזנה לרמקולים)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span class="lbl">גודל כתובית</span>
+      <input type="range" id="size" min="16" max="64" value="28">
+      <span class="lbl">שקיפות רקע</span>
+      <input type="range" id="bgop" min="0" max="100" value="55">
+      <select id="pos"><option value="bottom">כתוביות למטה</option><option value="top">כתוביות למעלה</option></select>
+      <button id="srt">💾 ייצוא SRT (<span id="cnt">0</span>)</button>
+      <button id="clr">נקה</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>איך זה עובד ומה המגבלות</summary>
+      <p>• זיהוי הדיבור מתבצע בדפדפן (Web Speech API) והתרגום לעברית באמצעות מתרגם מובנה של Chrome, או שירות MyMemory כגיבוי.</p>
+      <p>• הכתוביות מופיעות בדיעבד, כ־1–2 שניות אחרי המשפט, ולכן אי אפשר להגיע לסנכרון מושלם. אחרי הצפייה אפשר לייצא קובץ SRT עם התזמונים ולהפעיל אותו בנגן ליתר דיוק.</p>
+      <p>• הדפדפן לא מזהה שפה אוטומטית. מחליפים ידנית בין טורקית לאנגלית (מקשים T ו־E).</p>
+      <p>• יוטיוב: ניגון הסרטון נעשה דרך הנגן הרשמי שלהם, ולכן הדפדפן לא יכול לקבל את השמע ישירות והזיהוי עובד דרך המיקרופון בלבד. אם מופיעה שגיאת הטמעה (למשל 153) כשהקובץ נפתח ישירות מהמחשב, פתחו תיקייה בטרמינל והריצו <span dir="ltr">python -m http.server 8000</span>, ואז גלשו אל <span dir="ltr">http://localhost:8000/hebrew-subtitles.html</span>. סרטונים שהבעלים חסמו להטמעה לא יעבדו.</p>
+      <p>• נדרשים Chrome או Edge עדכניים ואינטרנט. אם "שמע הסרטון (ישיר)" לא מפיק טקסט, עברו למיקרופון (בלי אוזניות, כך שהמיקרופון ישמע את הרמקולים).</p>
+    </details>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const video = $('#video'), sub = $('#sub');
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let rec = null, running = false, lang = 'tr-TR';
+let seq = 0, lastInterim = 0, utterStart = null, hideTimer = null;
+const cues = [];
+const translators = {};
+
+const srcCode = () => lang.startsWith('tr') ? 'tr' : 'en';
+
+function setStatus(t, cls = '', live = false){
+  $('#stxt').textContent = t;
+  $('#status').className = cls;
+  $('#dot').className = 'dot' + (live ? ' live' : '');
+}
+
+/* ---------- תרגום ---------- */
+async function getTranslator(src){
+  if(!('Translator' in self)) return null;
+  if(translators[src] !== undefined) return translators[src];
+  try{
+    const opts = {sourceLanguage: src, targetLanguage: 'he'};
+    const av = await Translator.availability(opts);
+    translators[src] = av === 'unavailable' ? null : await Translator.create(opts);
+  }catch(e){ translators[src] = null; }
+  return translators[src];
+}
+
+async function translate(text, src){
+  try{
+    const t = await getTranslator(src);
+    if(t) return await t.translate(text);
+  }catch(e){}
+  try{
+    const r = await fetch('https://api.mymemory.translated.net/get?q=' +
+      encodeURIComponent(text.slice(0, 450)) + '&langpair=' + src + '|he');
+    const j = await r.json();
+    const out = j.responseData && j.responseData.translatedText;
+    if(out && !/MYMEMORY WARNING/i.test(out)) return out;
+    setStatus('מכסת התרגום החינמית נגמרה. נסו Chrome עדכני עם מתרגם מובנה', 'err');
+  }catch(e){
+    setStatus('שגיאת תרגום. בדקו חיבור לאינטרנט', 'err');
+  }
+  return null;
+}
+
+/* ---------- תצוגת כתוביות ---------- */
+function show(text){
+  sub.innerHTML = '';
+  if(text){
+    const s = document.createElement('span');
+    s.textContent = text;
+    sub.appendChild(s);
+  }
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => { sub.innerHTML = ''; }, 6000);
+}
+
+/* ---------- זיהוי דיבור ---------- */
+function getVideoAudioTrack(){
+  const cap = video.captureStream || video.mozCaptureStream;
+  if(!cap) return null;
+  const tracks = cap.call(video).getAudioTracks();
+  return tracks[0] || null;
+}
+
+function startRec(){
+  if(!running) return;
+  rec = new SR();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = lang;
+  rec.maxAlternatives = 1;
+
+  rec.onresult = async e => {
+    for(let i = e.resultIndex; i < e.results.length; i++){
+      const r = e.results[i];
+      const txt = r[0].transcript.trim();
+      if(!txt) continue;
+      if(utterStart === null) utterStart = Math.max(0, curTime() - 0.4);
+      const my = ++seq, src = srcCode();
+      if(r.isFinal){
+        const start = utterStart, end = curTime();
+        utterStart = null;
+        const he = await translate(txt, src);
+        if(he){
+          show(he);
+          cues.push({start, end: Math.max(end, start + 1), text: he});
+          $('#cnt').textContent = cues.length;
+        }
+      }else{
+        const now = Date.now();
+        if(now - lastInterim < 600) continue;
+        lastInterim = now;
+        const he = await translate(txt, src);
+        if(he && my === seq) show(he);
+      }
+    }
+  };
+
+  rec.onerror = e => {
+    if(e.error === 'no-speech' || e.error === 'aborted') return;
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      setStatus('אין הרשאת מיקרופון / זיהוי דיבור', 'err'); running = false; updateBtn(); return;
+    }
+    setStatus('שגיאת זיהוי: ' + e.error, 'err');
+  };
+
+  rec.onend = () => { if(running) setTimeout(startRec, 250); };
+
+  try{
+    if($('#src').value === 'video'){
+      const track = getVideoAudioTrack();
+      if(!track){
+        setStatus('התחילו לנגן את הסרט ואז הפעילו כתוביות (או עברו למיקרופון)', 'err');
+        running = false; updateBtn(); return;
+      }
+      rec.start(track);
+    }else{
+      rec.start();
+    }
+    setStatus('מאזין ל' + (srcCode()==='tr' ? 'טורקית' : 'אנגלית') + '…', 'ok', true);
+  }catch(err){
+    setStatus('לא ניתן להפעיל זיהוי: ' + err.message, 'err');
+    running = false; updateBtn();
+  }
+}
+
+function updateBtn(){
+  const b = $('#go');
+  b.textContent = running ? '■ עצור כתוביות' : '▶ הפעל כתוביות';
+  b.className = running ? 'stop' : 'primary';
+  if(!running) $('#dot').className = 'dot';
+}
+
+$('#go').onclick = async () => {
+  if(!SR){ setStatus('הדפדפן לא תומך בזיהוי דיבור. השתמשו ב-Chrome או Edge', 'err'); return; }
+  if(running){
+    running = false; try{ rec && rec.stop(); }catch(e){}
+    updateBtn(); setStatus('נעצר'); return;
+  }
+  running = true; updateBtn();
+  setStatus('מכין מתרגם…');
+  await getTranslator(srcCode());   // בתוך לחיצה, כדי לאפשר הורדת מודל שפה
+  startRec();
+};
+
+/* ---------- שפה ---------- */
+function setLang(l){
+  lang = l;
+  $('#tr').classList.toggle('on', l === 'tr-TR');
+  $('#en').classList.toggle('on', l === 'en-US');
+  if(running){ try{ rec.stop(); }catch(e){} }   // onend יפעיל מחדש עם השפה החדשה
+  getTranslator(srcCode());
+}
+$('#tr').onclick = () => setLang('tr-TR');
+$('#en').onclick = () => setLang('en-US');
+addEventListener('keydown', e => {
+  if(e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  if(e.key.toLowerCase() === 't') setLang('tr-TR');
+  if(e.key.toLowerCase() === 'e') setLang('en-US');
+});
+$('#src').onchange = () => {
+  if(mode === 'yt' && $('#src').value === 'video') $('#src').value = 'mic';
+  if(running){ try{ rec.stop(); }catch(e){} }
+};
+
+/* ---------- מצב קובץ / יוטיוב ---------- */
+let mode = 'file', ytp = null, ytApi = null;
+
+function curTime(){
+  if(mode === 'yt' && ytp && ytp.getCurrentTime){ try{ return ytp.getCurrentTime(); }catch(e){} }
+  return video.currentTime;
+}
+
+function loadYTApi(){
+  if(ytApi) return ytApi;
+  ytApi = new Promise(res => {
+    if(window.YT && YT.Player) return res();
+    window.onYouTubeIframeAPIReady = res;
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.onerror = () => { ytApi = null; setStatus('לא ניתן לטעון את נגן יוטיוב. בדקו חיבור', 'err'); };
+    document.head.appendChild(s);
+  });
+  return ytApi;
+}
+
+function parseYT(raw){
+  let u = raw.trim();
+  if(/^[\w-]{11}$/.test(u)) return {id: u, list: null};
+  if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  try{
+    const url = new URL(u), list = url.searchParams.get('list');
+    let id = null;
+    if(url.hostname.includes('youtu.be')) id = url.pathname.slice(1, 12);
+    else if(url.searchParams.get('v')) id = url.searchParams.get('v').slice(0, 11);
+    else{
+      const m = url.pathname.match(/\/(?:shorts|embed|live|v)\/([\w-]{11})/);
+      if(m) id = m[1];
+    }
+    return {id, list};
+  }catch(e){ return null; }
+}
+
+function enterMode(m){
+  mode = m;
+  const yt = m === 'yt';
+  $('#ytbox').style.display = yt ? 'block' : 'none';
+  video.style.display = yt ? 'none' : 'block';
+  $('#src').options[0].disabled = yt;
+  if(yt){ video.pause(); $('#src').value = 'mic'; }
+  else if(ytp){
+    try{ ytp.destroy(); }catch(e){}
+    ytp = null;
+    $('#ytbox').innerHTML = '<div id="ytplayer"></div>';
+  }
+  if(running){ try{ rec.stop(); }catch(e){} }
+}
+
+async function loadYT(){
+  const p = parseYT($('#url').value);
+  if(!p || (!p.id && !p.list)){ setStatus('קישור יוטיוב לא תקין', 'err'); return; }
+  if(ytp){ try{ ytp.destroy(); }catch(e){} ytp = null; $('#ytbox').innerHTML = '<div id="ytplayer"></div>'; }
+  enterMode('yt');
+  $('#empty').style.display = 'none';
+  cues.length = 0; $('#cnt').textContent = 0; show('');
+  setStatus('טוען מיוטיוב…');
+  await loadYTApi();
+  const vars = {playsinline: 1, rel: 0};
+  const opts = {width: '100%', height: '100%', playerVars: vars, events: {
+    onReady: () => setStatus('הסרטון נטען. לחצו נגן ואז "הפעל כתוביות"', 'ok'),
+    onError: () => setStatus('יוטיוב לא מאפשר ניגון/הטמעה של הסרטון הזה, או שנדרש לפתוח את האפליקציה דרך localhost (ראו הסבר למטה)', 'err')
+  }};
+  if(p.list){ vars.listType = 'playlist'; vars.list = p.list; }
+  if(p.id) opts.videoId = p.id;
+  ytp = new YT.Player('ytplayer', opts);
+}
+$('#ytgo').onclick = loadYT;
+$('#url').addEventListener('keydown', e => { if(e.key === 'Enter') loadYT(); });
+
+/* ---------- קובץ, מסך מלא, הגדרות ---------- */
+$('#file').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  enterMode('file');
+  video.src = URL.createObjectURL(f);
+  $('#empty').style.display = 'none';
+  cues.length = 0; $('#cnt').textContent = 0;
+  setStatus('נטען: ' + f.name);
+};
+$('#fs').onclick = () => {
+  const st = $('#stage');
+  document.fullscreenElement ? document.exitFullscreen() : st.requestFullscreen();
+};
+$('#size').oninput = e => sub.style.fontSize = e.target.value + 'px';
+$('#bgop').oninput = e => sub.style.setProperty('--bgop', e.target.value / 100);
+$('#pos').onchange = e => sub.classList.toggle('top', e.target.value === 'top');
+$('#clr').onclick = () => { cues.length = 0; $('#cnt').textContent = 0; show(''); };
+
+/* ---------- ייצוא SRT ---------- */
+const ts = s => {
+  const ms = Math.round(s * 1000);
+  const p = (n, l = 2) => String(n).padStart(l, '0');
+  return `${p(Math.floor(ms/3600000))}:${p(Math.floor(ms/60000)%60)}:${p(Math.floor(ms/1000)%60)},${p(ms%1000,3)}`;
+};
+$('#srt').onclick = () => {
+  if(!cues.length){ setStatus('אין עדיין כתוביות לייצוא', 'err'); return; }
+  const sorted = [...cues].sort((a, b) => a.start - b.start);
+  const out = sorted.map((c, i) => `${i+1}\n${ts(c.start)} --> ${ts(c.end)}\n${c.text}\n`).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + out], {type: 'text/plain;charset=utf-8'}));
+  a.download = 'hebrew-subtitles.srt';
+  a.click();
+};
+
+if(!SR) setStatus('הדפדפן לא תומך בזיהוי דיבור. השתמשו ב-Chrome או Edge', 'err');
+</script>
+</body>
+</html>
